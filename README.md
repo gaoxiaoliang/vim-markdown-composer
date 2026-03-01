@@ -8,6 +8,10 @@
 > - Uses [gaoxiaoliang/aurelius](https://github.com/gaoxiaoliang/aurelius) instead of the original aurelius
 > - Supports Mermaid.js diagrams (flowcharts, sequence diagrams, Gantt charts, etc.)
 > - Pinned Rust toolchain version for consistent builds
+>
+> **References:**
+> - [https://blog.rust-lang.org/releases/](https://blog.rust-lang.org/releases/)
+> - [https://crates.io/crates/aurelius](https://crates.io/crates/aurelius)
 
 ---
 
