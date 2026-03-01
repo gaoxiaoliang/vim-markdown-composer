@@ -113,8 +113,7 @@ dependencies = [
 [[package]]
 name = "aurelius"
 version = "0.7.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b76b4803301833dd69ed69491df93487482edd2ddf4236e218f0d43b3afe77b"
+source = "git+https://github.com/gaoxiaoliang/aurelius?branch=master#2443dd6f7d7cbac39fa51a8336897e3619d1f4a4"
 dependencies = [
  "base64",
  "buf_redux",

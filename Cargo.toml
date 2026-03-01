@@ -25,3 +25,6 @@ json-rpc = ["serde_json"]
 
 [dev-dependencies]
 assert_cmd = "2.0"
+
+[patch.crates-io]
+aurelius = { git = "https://github.com/gaoxiaoliang/aurelius", branch = "master" }
