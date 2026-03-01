@@ -1,4 +1,15 @@
-# vim-markdown-composer
+# vim-markdown-composer (Fork)
+
+> **Note:** This is a fork of [euclio/vim-markdown-composer](https://github.com/euclio/vim-markdown-composer).
+>
+> The main purpose of this fork is to add **Mermaid.js** support for rendering diagrams in Markdown previews. Since the original [aurelius](https://github.com/euclio/aurelius) library (which powers the Markdown rendering) has not been updated for several years, I created a [forked version of aurelius](https://github.com/gaoxiaoliang/aurelius) with Mermaid.js integration.
+>
+> **What's different:**
+> - Uses [gaoxiaoliang/aurelius](https://github.com/gaoxiaoliang/aurelius) instead of the original aurelius
+> - Supports Mermaid.js diagrams (flowcharts, sequence diagrams, Gantt charts, etc.)
+> - Pinned Rust toolchain version for consistent builds
+
+---
 
 ![](https://github.com/euclio/vim-markdown-composer/workflows/Continuous%20integration/badge.svg)
 
