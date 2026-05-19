@@ -9,10 +9,13 @@ use std::fs;
 use std::io;
 use std::io::prelude::*;
 use std::mem;
+use std::path::Path;
 use std::process::Command as ProcessCommand;
+use std::sync::mpsc;
+use std::thread;
 
 use anyhow::Result;
-use clap::{crate_authors, crate_version, Command, Arg};
+use clap::{crate_authors, crate_version, Arg, Command};
 use log::*;
 
 use aurelius::Server;
@@ -229,9 +232,18 @@ fn main() -> Result<()> {
 
     let mut server = Server::bind(format!(
         "{}:{}",
-        matches.get_one::<String>("address").map(|s| s.as_str()).unwrap_or("localhost"),
-        matches.get_one::<String>("port").map(|s| s.as_str()).unwrap_or("0")
+        matches
+            .get_one::<String>("address")
+            .map(|s| s.as_str())
+            .unwrap_or("localhost"),
+        matches
+            .get_one::<String>("port")
+            .map(|s| s.as_str())
+            .unwrap_or("0")
     ))?;
+    let (markdown_navigation_tx, markdown_navigation_rx) = mpsc::channel();
+    server.set_markdown_navigation_channel(markdown_navigation_tx);
+    spawn_markdown_navigation_writer(markdown_navigation_rx);
 
     if let Some(external_renderer) = matches.get_one::<String>("external-renderer") {
         server.set_external_renderer(parse_command(external_renderer));
@@ -277,4 +289,61 @@ fn parse_command(s: &str) -> ProcessCommand {
     let mut command = ProcessCommand::new(command);
     command.args(args);
     command
+}
+
+fn spawn_markdown_navigation_writer(receiver: mpsc::Receiver<std::path::PathBuf>) {
+    thread::spawn(move || {
+        for path in receiver {
+            if let Err(err) = send_open_file_message(&path) {
+                error!("could not send markdown navigation message: {}", err);
+            }
+        }
+    });
+}
+
+#[cfg(feature = "msgpack")]
+fn send_open_file_message(path: &Path) -> io::Result<()> {
+    let command = format!("edit {}", vim_fnameescape(path));
+    let message = (2u64, "nvim_command", vec![command]);
+    let bytes = rmp_serde::to_vec(&message).map_err(|err| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("could not encode msgpack-rpc notification: {}", err),
+        )
+    })?;
+
+    let stdout = io::stdout();
+    let mut stdout = stdout.lock();
+    stdout.write_all(&bytes)?;
+    stdout.flush()
+}
+
+#[cfg(feature = "json-rpc")]
+fn send_open_file_message(path: &Path) -> io::Result<()> {
+    let message = ("open_file", path.to_string_lossy().into_owned());
+
+    let stdout = io::stdout();
+    let mut stdout = stdout.lock();
+    serde_json::to_writer(&mut stdout, &message)?;
+    stdout.write_all(b"\n")?;
+    stdout.flush()
+}
+
+#[cfg(feature = "msgpack")]
+fn vim_fnameescape(path: &Path) -> String {
+    let path = path.to_string_lossy();
+    let mut escaped = String::with_capacity(path.len());
+
+    for ch in path.chars() {
+        match ch {
+            ' ' | '\t' | '\n' | '*' | '[' | ']' | '?' | '`' | '$' | '\\' | '%' | '#' | '\''
+            | '"' | '|' | '!' | '<' => {
+                escaped.push('\\');
+                escaped.push(ch);
+            }
+            _ => escaped.push(ch),
+        }
+    }
+
+    escaped
 }

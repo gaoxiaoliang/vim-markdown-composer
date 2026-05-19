@@ -87,8 +87,10 @@ function! s:startServer()
 
     let l:job = job_start(l:args, {
           \ 'mode': 'json',
+          \ 'out_mode': 'raw',
           \ 'cwd': s:plugin_root,
           \ 'err_io': 'null',
+          \ 'out_cb': function('s:onServerMessage'),
           \ 'exit_cb': function('s:onServerExit'),
           \ })
     let l:channel = job_getchannel(l:job)
@@ -126,6 +128,26 @@ function! s:openBrowser()
             \ 'params': [],
             \ })
     endif
+  endif
+endfunction
+
+function! s:onServerMessage(channel, message) abort
+  if type(a:message) == type('')
+    if empty(a:message)
+      return
+    endif
+
+    try
+      let l:message = json_decode(a:message)
+    catch
+      return
+    endtry
+  else
+    let l:message = a:message
+  endif
+
+  if type(l:message) == type([]) && len(l:message) == 2 && l:message[0] ==# 'open_file'
+    execute 'edit ' . fnameescape(l:message[1])
   endif
 endfunction
 
