@@ -149,7 +149,7 @@ function! s:onServerMessage(channel, message) abort
   endif
 
   if type(l:message) == type([]) && len(l:message) == 2 && l:message[0] ==# 'open_file'
-    execute 'edit ' . fnameescape(l:message[1])
+    execute 'hide edit ' . fnameescape(l:message[1])
   endif
 endfunction
 

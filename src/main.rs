@@ -323,7 +323,7 @@ fn spawn_markdown_navigation_writer(receiver: mpsc::Receiver<std::path::PathBuf>
 
 #[cfg(feature = "msgpack")]
 fn send_open_file_message(path: &Path) -> io::Result<()> {
-    let command = format!("edit {}", vim_fnameescape(path));
+    let command = open_file_command(path);
     let message = (2u64, "nvim_command", vec![command]);
     let bytes = rmp_serde::to_vec(&message).map_err(|err| {
         io::Error::new(
@@ -349,7 +349,7 @@ fn send_open_file_message(path: &Path) -> io::Result<()> {
     stdout.flush()
 }
 
-#[cfg(feature = "msgpack")]
+#[cfg(any(feature = "msgpack", test))]
 fn vim_fnameescape(path: &Path) -> String {
     let path = path.to_string_lossy();
     let mut escaped = String::with_capacity(path.len());
@@ -366,4 +366,22 @@ fn vim_fnameescape(path: &Path) -> String {
     }
 
     escaped
+}
+
+#[cfg(any(feature = "msgpack", test))]
+fn open_file_command(path: &Path) -> String {
+    format!("hide edit {}", vim_fnameescape(path))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    #[test]
+    fn open_file_command_hides_modified_buffers() {
+        assert_eq!(
+            super::open_file_command(Path::new("/tmp/linked file.md")),
+            "hide edit /tmp/linked\\ file.md"
+        );
+    }
 }
