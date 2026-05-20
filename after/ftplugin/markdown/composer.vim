@@ -1,5 +1,10 @@
 let s:plugin_root = expand('<sfile>:p:h:h:h:h')
 
+if exists('s:loaded')
+  finish
+endif
+let s:loaded = 1
+
 if exists('g:markdown_composer_refresh_rate')
   let s:refresh_rate = g:markdown_composer_refresh_rate
 elseif exists('g:markdown_composer_external_renderer')
