@@ -133,7 +133,15 @@ function! s:openBrowser()
   endif
 endfunction
 
-function! s:onServerMessage(channel, message) abort
+function! s:onServerMessage(...) abort
+  if a:0 == 0
+    return
+  endif
+
+  call s:handleServerMessage(a:0 >= 2 ? a:2 : a:1)
+endfunction
+
+function! s:handleServerMessage(message) abort
   if type(a:message) == type('')
     if empty(a:message)
       return
@@ -148,8 +156,14 @@ function! s:onServerMessage(channel, message) abort
     let l:message = a:message
   endif
 
-  if type(l:message) == type([]) && len(l:message) == 2 && l:message[0] ==# 'open_file'
-    execute 'hide edit ' . fnameescape(s:percentDecodePath(l:message[1]))
+  if type(l:message) == type([])
+    if len(l:message) == 2 && l:message[0] ==# 'open_file'
+      execute 'hide edit ' . fnameescape(s:percentDecodePath(l:message[1]))
+    else
+      for l:item in l:message
+        call s:handleServerMessage(l:item)
+      endfor
+    endif
   endif
 endfunction
 
