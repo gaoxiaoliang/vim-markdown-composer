@@ -8,7 +8,7 @@ use std::time::Duration;
 use aurelius::Server;
 
 #[test]
-fn local_markdown_links_redirect_to_live_preview() -> Result<(), Box<dyn Error>> {
+fn local_markdown_links_use_preview_routes() -> Result<(), Box<dyn Error>> {
     let test_dir = std::env::temp_dir().join(format!(
         "markdown-composer-navigation-test-{}",
         std::process::id()
@@ -30,8 +30,8 @@ fn local_markdown_links_redirect_to_live_preview() -> Result<(), Box<dyn Error>>
     let mut response = String::new();
     conn.read_to_string(&mut response)?;
 
-    assert!(response.starts_with("HTTP/1.1 303 See Other"));
-    assert!(response.contains("\r\nLocation: /\r\n"));
+    assert!(response.starts_with("HTTP/1.1 200 OK"));
+    assert!(response.contains("\r\nContent-Type: text/html; charset=UTF-8\r\n"));
     assert_eq!(rx.recv_timeout(Duration::from_secs(1))?, linked_file);
 
     fs::remove_dir_all(test_dir)?;

@@ -120,12 +120,14 @@ endfunction
 
 function! s:openBrowser()
   if exists('s:job')
+    let l:file = expand('%:p')
+
     if has('nvim')
-      call rpcnotify(s:job, 'open_browser')
+      call rpcnotify(s:job, 'open_browser', l:file)
     else
       call ch_sendexpr(s:job, {
             \ 'method': 'open_browser',
-            \ 'params': [],
+            \ 'params': [l:file],
             \ })
     endif
   endif

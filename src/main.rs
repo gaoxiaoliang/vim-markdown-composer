@@ -132,10 +132,11 @@ fn read_rpc(reader: impl Read, mut server: Server, browser: Option<&str>) -> Res
                 let markdown = mem::replace(&mut rpc.params[0], String::new());
                 server.send(markdown)
             }
-            "open_browser" => match browser {
-                Some(browser) => server.open_specific_browser(ProcessCommand::new(browser)),
-                None => server.open_browser(),
-            },
+            "open_browser" => open_preview_browser(
+                &server,
+                browser,
+                rpc.params.first().map(|path| Path::new(path)),
+            ),
             "chdir" => {
                 let cwd = &rpc.params[0];
                 info!("changing working directory: {}", cwd);
@@ -261,18 +262,20 @@ fn main() -> Result<()> {
         server.set_custom_css(custom_css.map(|s| s.to_string()).collect())?;
     }
 
-    if let Some(file_name) = matches.get_one::<String>("markdown-file") {
+    let markdown_file = matches.get_one::<String>("markdown-file");
+
+    if let Some(file_name) = markdown_file {
         server.send(fs::read_to_string(file_name)?)?;
     }
 
     let browser = matches.get_one::<String>("browser");
 
     if !matches.get_flag("no-auto-open") {
-        if let Some(browser) = browser {
-            server.open_specific_browser(parse_command(browser))?;
-        } else {
-            server.open_browser()?;
-        };
+        open_preview_browser(
+            &server,
+            browser.map(|browser| browser.as_str()),
+            markdown_file.map(|file_name| Path::new(file_name)),
+        )?;
     }
 
     let stdin = io::stdin();
@@ -289,6 +292,23 @@ fn parse_command(s: &str) -> ProcessCommand {
     let mut command = ProcessCommand::new(command);
     command.args(args);
     command
+}
+
+fn open_preview_browser(
+    server: &Server,
+    browser: Option<&str>,
+    path: Option<&Path>,
+) -> io::Result<()> {
+    let path = path.map(|path| fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf()));
+
+    match (browser, path) {
+        (Some(browser), Some(path)) => {
+            server.open_specific_browser_at_path(parse_command(browser), path)
+        }
+        (Some(browser), None) => server.open_specific_browser(parse_command(browser)),
+        (None, Some(path)) => server.open_browser_at_path(path),
+        (None, None) => server.open_browser(),
+    }
 }
 
 fn spawn_markdown_navigation_writer(receiver: mpsc::Receiver<std::path::PathBuf>) {
