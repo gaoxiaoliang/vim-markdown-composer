@@ -61,13 +61,23 @@ let g:markdown_composer_binary = {binary}
         &script,
         format!(
             "\
+function! WaitForPath(path) abort
+  let l:start = reltime()
+  while reltimefloat(reltime(l:start)) < 5
+    if expand('%:p') ==# a:path
+      return
+    endif
+    sleep 100m
+  endwhile
+endfunction
+
 sleep 1
 call writefile(['start=' . expand('%:p')], {result}, 'a')
 call system('curl -s ' . shellescape('http://localhost:{port}' . expand('%:p:h') . '/b.md') . ' >/dev/null')
-sleep 1
+call WaitForPath({b})
 call writefile(['after_b=' . expand('%:p')], {result}, 'a')
 call system('curl -s ' . shellescape('http://localhost:{port}' . expand('%:p:h') . '/c.md') . ' >/dev/null')
-sleep 1
+call WaitForPath({c})
 call writefile(['after_c=' . expand('%:p')], {result}, 'a')
 redir! > {messages_raw}
 silent messages
@@ -75,6 +85,8 @@ redir END
 qa!
 ",
             result = vim_string(&result),
+            b = vim_string(fs::canonicalize(&b)?),
+            c = vim_string(fs::canonicalize(&c)?),
             messages_raw = messages.display(),
             port = port
         ),
