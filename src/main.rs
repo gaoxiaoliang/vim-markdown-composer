@@ -340,13 +340,30 @@ fn send_open_file_message(path: &Path) -> io::Result<()> {
 
 #[cfg(feature = "json-rpc")]
 fn send_open_file_message(path: &Path) -> io::Result<()> {
-    let message = ("open_file", path.to_string_lossy().into_owned());
+    let message = ("open_file", percent_encode_path(path));
 
     let stdout = io::stdout();
     let mut stdout = stdout.lock();
     serde_json::to_writer(&mut stdout, &message)?;
     stdout.write_all(b"\n")?;
     stdout.flush()
+}
+
+#[cfg(any(feature = "json-rpc", test))]
+fn percent_encode_path(path: &Path) -> String {
+    let path = path.to_string_lossy();
+    let mut encoded = String::with_capacity(path.len());
+
+    for byte in path.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' | b'/' => {
+                encoded.push(byte as char)
+            }
+            _ => encoded.push_str(&format!("%{:02X}", byte)),
+        }
+    }
+
+    encoded
 }
 
 #[cfg(any(feature = "msgpack", test))]
@@ -382,6 +399,16 @@ mod tests {
         assert_eq!(
             super::open_file_command(Path::new("/tmp/linked file.md")),
             "hide edit /tmp/linked\\ file.md"
+        );
+    }
+
+    #[test]
+    fn percent_encode_path_keeps_non_ascii_paths_ascii() {
+        let path = Path::new("/tmp/\u{4e2d}\u{6587} file.md");
+
+        assert_eq!(
+            super::percent_encode_path(path),
+            "/tmp/%E4%B8%AD%E6%96%87%20file.md"
         );
     }
 }

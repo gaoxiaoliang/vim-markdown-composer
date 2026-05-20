@@ -149,8 +149,25 @@ function! s:onServerMessage(channel, message) abort
   endif
 
   if type(l:message) == type([]) && len(l:message) == 2 && l:message[0] ==# 'open_file'
-    execute 'hide edit ' . fnameescape(l:message[1])
+    execute 'hide edit ' . fnameescape(s:percentDecodePath(l:message[1]))
   endif
+endfunction
+
+function! s:percentDecodePath(path) abort
+  let l:decoded = ''
+  let l:index = 0
+
+  while l:index < strlen(a:path)
+    if a:path[l:index] ==# '%' && l:index + 2 < strlen(a:path)
+      let l:decoded .= nr2char(str2nr(strpart(a:path, l:index + 1, 2), 16))
+      let l:index += 3
+    else
+      let l:decoded .= a:path[l:index]
+      let l:index += 1
+    endif
+  endwhile
+
+  return l:decoded
 endfunction
 
 function! s:echoJob()
